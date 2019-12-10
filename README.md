@@ -4,6 +4,7 @@
 # URLMockSession
 
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat)](http://badges.mit-license.org)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FAlbertoLourenco%2FURLMockSession.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FAlbertoLourenco%2FURLMockSession?ref=badge_shield)
 
 A simple class that makes REST API requests and mock these datas automatically (if you wanna).
 
@@ -84,4 +85,6 @@ for item in mocks {
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FAlbertoLourenco%2FURLMockSession.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FAlbertoLourenco%2FURLMockSession?ref=badge_large)
 
