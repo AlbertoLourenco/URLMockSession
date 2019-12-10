@@ -7,9 +7,9 @@
 
 A simple class that makes REST API requests and mock these datas automatically (if you wanna).
 
-If you don't wants to use bigger libraries that will takes up large spaces on your project, add this class and make all of your REST API requests and mock these datas when you need this.
+If you don't want to use larger libraries than will takes up large spaces on your project, add this class and make all of your REST API requests and mock these datas when you need this.
 
-When you are implementing tests your project cannot makes REST API requests. And with URLMockSession you can load local mocked datas with no more hard works.
+> When you are implementing tests, your project cannot makes REST API requests. And with URLMockSession you can load local mocked datas with no hard work.
 
 Why use this class?
 
@@ -17,7 +17,7 @@ Why use this class?
 * Simple application;
 * Works with threads;
 * Mock your API responses;
-* Easily switch to load mock ou REST API data;
+* Easily switch to load mock or REST API data;
 * This class takes up less space (only 14kb);
 
 This class uses:
@@ -53,7 +53,7 @@ You can see more details about each attrs inside `URLMockSession.swift` class.
 
 ## Requesting REST API
 
-After setting class configs, do your REST API request:
+After complete class configs, make your REST API request:
 
 ```swift
 let manager = URLMockSession(with: config)
@@ -68,7 +68,7 @@ manager.request(method: .get,
 
 ## Getting all mocked data
 
-If you wants to see all mocked data, implement this script:
+If you want to see all mocked data, implement this script:
 
 ```swift
 let mocks = MockManager.shared.all() // Array<Mock>
@@ -77,9 +77,9 @@ for item in mocks {
 }
 ```
 
-> I've used this class on my iOS projects and now I'm publishing it to share it with another developers and receive responses about that. If you have some idea to add, please make a pull request.
+> I used this class in my iOS projects and now I'm publishing it to share it with other developers and get answers about it. If you have any ideas to add, please make a `pull request`.
 
-> Feel free to use, copy and change what you wants.
+> Feel free to use, copy and change what you need.
 
 ## License
 
