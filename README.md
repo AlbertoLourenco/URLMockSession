@@ -9,7 +9,7 @@ A simple class that makes REST API requests and mock these datas automatically (
 
 If you don't want to use larger libraries than will takes up large spaces on your project, add this class and make all of your REST API requests and mock these datas when you need this.
 
-> When you are implementing tests, your project cannot makes REST API requests. And with URLMockSession you can load local mocked datas with no hard work.
+> When you are implementing tests, your project cannot makes REST API requests. And with URLMockSession you can load local mocked datas without hard work.
 
 Why use this class?
 
