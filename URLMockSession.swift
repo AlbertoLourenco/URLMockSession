@@ -1,6 +1,5 @@
 //
-//  APIRequest.swift
-//  URLSession
+//  URLMockSession.swift
 //
 //  Created by Alberto Lourenço on 12/1/19.
 //  Copyright © 2019 Alberto Lourenço. All rights reserved.
@@ -13,19 +12,24 @@ import Foundation
 //-----------------------------------------------------------------------
 
 enum MockRequestType {
+    case json
+    case formData
+    case formEncoded
+}
+
+enum MockRequestMethod {
     case get
     case post
     case put
     case patch
     case delete
-    case formEncoded
 }
 
 //-----------------------------------------------------------------------
 //  MARK: - Structs
 //-----------------------------------------------------------------------
 /*
- *...................
+ *-------------------
  * >> MockConfig
  *-------------------
  * baseURL: API base URL
@@ -48,7 +52,7 @@ struct MockConfig {
     var headers: Array<Dictionary<String, String>> = []
 }
 /*
- *...................
+ *-------------------
  * >> Mock
  *-------------------
  * date: mock last updated date
@@ -60,6 +64,7 @@ struct MockConfig {
  * content: mock json content string
  */
 struct Mock {
+    
     var date: String = ""
     var path: String = ""
     var fileName: String = ""
@@ -67,7 +72,9 @@ struct Mock {
     var responseCode: Int = 0
     var appVersion: String = ""
     var content: String = ""
+    
     init(with dictionary: Dictionary<String, Any>) {
+        
         self.date = dictionary["date"] as? String ?? ""
         self.path = dictionary["path"] as? String ?? ""
         self.fileName = dictionary["fileName"] as? String ?? ""
@@ -75,6 +82,20 @@ struct Mock {
         self.responseCode = dictionary["responseCode"] as? Int ?? 0
         self.appVersion = dictionary["appVersion"] as? String ?? ""
     }
+}
+
+/*
+ *-------------------
+ * >> UploadFile
+ *-------------------
+ * data: binary
+ * name: filename
+ * type: extension (png, jpeg, etc)
+ */
+struct UploadFile {
+    var data: Data
+    var name: String
+    var type: String
 }
 
 //-----------------------------------------------------------------------
@@ -89,71 +110,103 @@ class URLMockSession {
         self.config = config
     }
     
-    func request<T:Decodable>(method: MockRequestType,
+    func request<T:Decodable>(method: MockRequestMethod,
+                              type: MockRequestType = .json,
                               endpoint: String,
-                              parameters: Dictionary<String, Any>,
+                              parameters: Dictionary<String, Any> = [:],
+                              files: Array<UploadFile> = [],
                               authenticated: Bool = false,
                               responseType: T.Type,
                               completion: @escaping (_ response: Any?, _ code: Int) -> Void) {
+        
         var serverURL: String = config.baseURL + endpoint
+        
         let request = NSMutableURLRequest()
+        
         request.timeoutInterval = config.timeout
         request.cachePolicy = .useProtocolCachePolicy
         request.setValue("*/*", forHTTPHeaderField: "Accept")
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // addin headers
+        
         for header in config.headers {
             for key in header.keys {
                 request.setValue(header[key], forHTTPHeaderField: key)
             }
         }
+        
         let session = URLSession.shared
+        
         switch method {
-            case .get:
-                serverURL += parameters.buildQueryString()
-                request.httpMethod = "GET"
-                break
-            case .patch:
-                serverURL += parameters.buildQueryString()
-                request.httpMethod = "PATCH"
-                break
-            case .put:
-                request.httpMethod = "PUT"
-                request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
-                break
-            case .post:
-                request.httpMethod = "POST"
-                request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
-                break
-            case .delete:
-                request.httpMethod = "DELETE"
-                request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
-                break
-            case .formEncoded:
-                request.httpMethod = "POST"
-                request.httpBody = parameters.buildQueryString(encoded: true).data(using: String.Encoding.utf8)!
-                request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-                break
+        case .get:
+            serverURL += parameters.buildQueryString()
+            request.httpMethod = "GET"
+            break
+        case .patch:
+            serverURL += parameters.buildQueryString()
+            request.httpMethod = "PATCH"
+            break
+        case .put:
+            request.httpMethod = "PUT"
+            break
+        case .post:
+            request.httpMethod = "POST"
+            request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
+            break
+        case .delete:
+            request.httpMethod = "DELETE"
+            request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
+            break
         }
+        
+        switch type {
+            
+        case .json:
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: .prettyPrinted)
+            break
+            
+        case .formData:
+            self.formData(url: serverURL,
+                          parameters: parameters,
+                          files: files,
+                          authenticated: authenticated,
+                          responseType: T.self) { (response, code) in
+                            completion(response, code)
+            }
+            return
+            
+        case .formEncoded:
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+            request.httpBody = parameters.buildQueryString(encoded: true).data(using: String.Encoding.utf8)!
+            break
+        }
+        
         if !config.token.isEmpty && authenticated {
             request.setValue("Bearer " + config.token, forHTTPHeaderField: "Authorization")
         }
+        
         request.url = URL(string: serverURL)
+        
         print("--------------------------------------------------------")
         print("Parameters: \(parameters)")
         print("Request URL: \(request.url!.absoluteString)")
         print("--------------------------------------------------------")
+        
         //---------------------------------------------------------
         //  Running tests
         //---------------------------------------------------------
+        
         if config.testingSuccess || config.testingFail {
+            
             if config.testingFail {
                 DispatchQueue.main.async { completion(nil, 400) }
                 return
             }
+            
             if config.testingSuccess {
+                
                 if let mock = MockManager.shared.load(endpoint) {
+                    
                     if T.self == String.self, let responseString = String(data: mock, encoding: .utf8) {
                         DispatchQueue.main.async { completion(responseString, 200) }
                     }else{
@@ -166,36 +219,124 @@ class URLMockSession {
             }
             return
         }
+        
         //---------------------------------------------------------
         //  Load API
         //---------------------------------------------------------
+        
         let task = session.dataTask(with: request as URLRequest,
                                     completionHandler: {data, response, error -> Void in
-            let responseCode = response?.getStatusCode() ?? 0
-            guard error == nil else {
-                DispatchQueue.main.async { completion(nil, responseCode) }
-                return
-            }
-            if let responseData = data, responseData.count != 0 {
-                if self.config.mock {
-                    if let responseString = String(data: responseData, encoding: .utf8) {
-                        print("Response: \(responseString)")
-                        MockManager.shared.mock(endpoint: endpoint, json: responseString, code: responseCode)
-                    }
-                }
-                do {
-                    let parse = try JSONDecoder().decode(T.self, from: responseData)
-                    DispatchQueue.main.async { completion(parse, responseCode) }
-                }catch{
-                    print("-> Entity: " + String(describing: T.self))
-                    print("-> Error: " + String(describing: error))
-                }
-            }else{
-                DispatchQueue.main.async { completion(nil, responseCode) }
-            }
+                                        
+                                        let responseCode = response?.getStatusCode() ?? 0
+                                        
+                                        guard error == nil else {
+                                            DispatchQueue.main.async { completion(nil, responseCode) }
+                                            return
+                                        }
+                                        
+                                        if let responseData = data, responseData.count != 0 {
+                                            
+                                            if let responseString = String(data: responseData, encoding: .utf8) {
+                                                print("Response: \(responseString)")
+                                            }
+                                            
+                                            if self.config.mock {
+                                                if let responseString = String(data: responseData, encoding: .utf8) {
+                                                    MockManager.shared.mock(endpoint: endpoint, json: responseString, code: responseCode)
+                                                }
+                                            }
+                                            
+                                            do {
+                                                let parse = try JSONDecoder().decode(T.self, from: responseData)
+                                                DispatchQueue.main.async { completion(parse, responseCode) }
+                                            }catch{
+                                                print("-> Entity: " + String(describing: T.self))
+                                                print("-> Error: " + String(describing: error))
+                                            }
+                                        }else{
+                                            DispatchQueue.main.async { completion(nil, responseCode) }
+                                        }
         })
+        
         task.resume()
     }
+    
+    private func formData<T:Decodable>(url: String,
+                                       parameters: Dictionary<String, Any> = [:],
+                                       files: Array<UploadFile>,
+                                       authenticated: Bool = false,
+                                       responseType: T.Type,
+                                       completion: @escaping (_ response: Any?, _ code: Int) -> Void) {
+        
+        print("--------------------------------------------------------")
+        print("Parameters: \(parameters)")
+        print("Request URL: \(url)")
+        print("--------------------------------------------------------")
+        
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config)
+        
+        let boundary = "Boundary-\(UUID().uuidString)"
+        let boundaryPrefix = "\r\n--\(boundary)\r\n"
+        
+        var urlRequest = URLRequest(url: URL(string: url)!)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        let body = NSMutableData()
+        
+        for (key, value) in parameters {
+            body.appendString(boundaryPrefix)
+            body.appendString("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n")
+            body.appendString("\(value)\r\n")
+            body.appendString("--".appending(boundary.appending("--")))
+        }
+        
+        for file in files {
+            
+            let filename = "\(file.name).\(file.type)"
+            
+            body.appendString(boundaryPrefix)
+            body.appendString("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n")
+            body.appendString("Content-Type: image/\(file.type)\r\n\r\n")
+            body.append(file.data)
+            body.appendString("\r\n")
+            body.appendString("--".appending(boundary.appending("--")))
+        }
+        
+        let data = body as Data
+        
+        session.uploadTask(with: urlRequest,
+                           from: data,
+                           completionHandler: { data, response, error in
+                            
+                            let responseCode = response?.getStatusCode() ?? 0
+                            
+                            if let responseData = data, responseData.count != 0 {
+                                
+                                if let responseString = String(data: responseData, encoding: .utf8) {
+                                    print("Response: \(responseString)")
+                                }
+                                
+                                if self.config.mock {
+                                    if let responseString = String(data: responseData, encoding: .utf8) {
+                                        MockManager.shared.mock(endpoint: url, json: responseString, code: responseCode)
+                                    }
+                                }
+                                
+                                do {
+                                    let parse = try JSONDecoder().decode(T.self, from: responseData)
+                                    DispatchQueue.main.async { completion(parse, responseCode) }
+                                }catch{
+                                    print("-> Entity: " + String(describing: T.self))
+                                    print("-> Error: " + String(describing: error))
+                                }
+                            }else{
+                                DispatchQueue.main.async { completion(nil, responseCode) }
+                            }
+        }).resume()
+    }
+    
 }
 
 //-----------------------------------------------------------------------
@@ -207,14 +348,21 @@ class MockManager {
     static let shared = MockManager()
     
     func all() -> Array<Mock> {
+        
         var array: Array<Mock> = []
+        
         if let list = UserDefaults.standard.dictionary(forKey: "Mocks") {
+            
             for key in list.keys {
+                
                 if let item = list[key] as? Dictionary<String, Any> {
+                    
                     var mock = Mock(with: item)
+                    
                     if let data = self.load(mock.endpoint) {
                         mock.content = String(decoding: data, as: UTF8.self)
                     }
+                    
                     array.append(mock)
                 }
             }
@@ -288,9 +436,11 @@ class MockManager {
     }
     
     private func getAppVersion() -> String {
+        
         if let info = Bundle.main.infoDictionary,
             let version = info["CFBundleShortVersionString"] as? String,
             let build = info["CFBundleVersion"] as? String {
+            
             return "\(version) (\(build))"
         }
         return ""
@@ -339,5 +489,12 @@ extension Date {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: self)
+    }
+}
+
+extension NSMutableData {
+    func appendString(_ string: String) {
+        let data = string.data(using: String.Encoding.utf8, allowLossyConversion: false)
+        append(data!)
     }
 }
