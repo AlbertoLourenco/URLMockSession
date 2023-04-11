@@ -1,7 +1,5 @@
 
-![URLMockSession](http://albertolourenco.com.br/github/URLMockSession.png)
-
-# URLMockSession
+![URLMockSession](https://raw.githubusercontent.com/AlbertoLourenco/URLMockSession/master/github-assets/cover.png)
 
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat)](http://badges.mit-license.org)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FAlbertoLourenco%2FURLMockSession.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FAlbertoLourenco%2FURLMockSession?ref=badge_shield)
