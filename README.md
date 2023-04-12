@@ -80,9 +80,3 @@ for item in mocks {
 
 > Feel free to use, copy and change what you need.
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FAlbertoLourenco%2FURLMockSession.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FAlbertoLourenco%2FURLMockSession?ref=badge_large)
-
