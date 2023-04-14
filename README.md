@@ -76,7 +76,6 @@ for item in mocks {
 }
 ```
 
-> I used this class in my iOS projects and now I'm publishing it to share it with other developers and get answers about it. If you have any ideas to add, please make a `pull request`.
-
+> I used this class in my iOS projects and now I'm publishing it to share it with other developers and get answers about it. If you have any ideas to add, please make a `pull request`. <br /><br />
 > Feel free to use, copy and change what you need.
 
